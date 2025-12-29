@@ -1,0 +1,30 @@
+# .github/workflows/ci.yml
+name: Build and Deploy to Local Kind (Self-hosted)
+
+on:
+  push:
+    branches: [ '*' ]   # 监听所有分支
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted  # ← 关键！使用你的 Mac 作为 runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t llm-inference-service:${{ github.sha }} .
+
+      - name: Load image into Kind
+        run: |
+          kind load docker-image llm-inference-service:${{ github.sha }} --name llm-demo
+
+      - name: Update deployment image
+        run: |
+          kubectl set image deployment/llm-api api=llm-inference-service:${{ github.sha }}
+
+      - name: Verify rollout
+        run: |
+          kubectl rollout status deployment/llm-api --timeout=60s
