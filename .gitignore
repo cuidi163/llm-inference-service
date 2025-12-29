@@ -1,0 +1,20 @@
+cat > .gitignore <<EOF
+# Binaries
+*.exe
+*.out
+*.bin
+
+# Go
+/bin/
+/vendor/
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+EOF
