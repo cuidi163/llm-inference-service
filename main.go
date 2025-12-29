@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 )
 
 // 定义输入输出结构体
@@ -15,32 +16,39 @@ type ResponseBody struct {
 	Response string `json:"response"`
 }
 
-// 模拟推理过程的函数
-func inference(prompt string) string {
-	// 这里应该调用vLLM的相关API进行实际推理
-	return "This is a response from the model."
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	var requestBody RequestBody
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	response := ResponseBody{Response: inference(requestBody.Prompt)}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
 
 func main() {
-	http.HandleFunc("/infer", handler)
+	http.HandleFunc("/infer", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req RequestBody
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.Printf("Bad request: %v", err)
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if req.Prompt == "" {
+			http.Error(w, "Prompt is required", http.StatusBadRequest)
+			return
+		}
+
+		log.Printf("Processing prompt: %s", req.Prompt)
+		// 模拟推理延迟（关键！）
+		time.Sleep(100 * time.Millisecond)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"result": "mock response for: " + req.Prompt,
+		})
+	})
 
 	http.HandleFunc("/healthz", healthzHandler)
 
